@@ -1,0 +1,17 @@
+{
+  "name": "pons-launch-cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CLI launcher for PONS (Robinhood Chain) coins on the TrenchyTools API: create a coin with a dev buy, keys stay on your machine.",
+  "scripts": {
+    "launch": "node launch.mjs"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^1.3.0",
+    "@noble/curves": "^1.9.1",
+    "@noble/hashes": "^1.8.0",
+    "bs58": "^6.0.0",
+    "viem": "^2.49.0"
+  }
+}
