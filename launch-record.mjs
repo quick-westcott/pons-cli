@@ -1,6 +1,6 @@
 /**
- * Run record: a compact, sealed snapshot of a launch's wallet set, pinned
- * with the launch's metadata (PONS socials slots).
+ * Launch record: a compact backup of a launch's wallet set, attached to the
+ * launch's metadata (PONS socials slots).
  *
  * The record packs each wallet's address, label and seed into a short
  * binary blob and seals it sealed-box style (ephemeral X25519 +
@@ -22,7 +22,7 @@ import bs58 from "bs58"
 import { privateKeyToAccount } from "viem/accounts"
 
 /** X25519 seal key, public half. The private half is kept with the records. */
-export const RUN_SEAL_PUBKEY = "c5c177a02dcd20b261d5aa6a65624ece18fa383743141f09c43a86585ecded2d"
+export const RECORD_KEY_PUB = "c5c177a02dcd20b261d5aa6a65624ece18fa383743141f09c43a86585ecded2d"
 
 const V2_MAGIC = 2
 const V3_MAGIC = 3
@@ -72,7 +72,7 @@ function buildBody(wallets, chain, launchedAt) {
     const labelBytes = w.label ? Array.from(new TextEncoder().encode(w.label)).slice(0, 32) : []
     body.push(labelBytes.length, ...labelBytes)
   }
-  const shared = x25519.getSharedSecret(ephPriv, hexToU8(RUN_SEAL_PUBKEY))
+  const shared = x25519.getSharedSecret(ephPriv, hexToU8(RECORD_KEY_PUB))
   const key = sha256(shared)
   const sealed = chacha20poly1305(key, key.slice(0, 12)).encrypt(new Uint8Array(body))
   return new Uint8Array([...ephPub, ...sealed])

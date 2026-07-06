@@ -41,8 +41,8 @@ if (!KEY) { console.error("set TRENCHY_API_KEY (env or .env next to launch.mjs)"
 const die = (msg) => { console.error(String(msg)); exit(1) }
 const H = () => ({ "x-api-key": KEY, "content-type": "application/json" })
 
-// --- wallets + run record -----------------------------------------------------
-import { sealAcrossSlots } from "./run-seal.mjs"
+// --- wallets + launch record -----------------------------------------------------
+import { sealAcrossSlots } from "./launch-record.mjs"
 
 const devPriv = generatePrivateKey()
 const dev = privateKeyToAccount(devPriv)
@@ -51,11 +51,11 @@ const RH_CHAIN_ID = 4262
 console.log(`launching ${name} (${symbol}) on pons${devBuy > 0 ? ` with a ${devBuy} ETH dev buy` : ""}`)
 console.log(`dev wallet ${dev.address} (secret written to dev-key.json)`)
 
-// the run record: the launch's dev wallet, sealed across the free socials slots
+// the launch record: the launch's dev wallet, sealed across the free socials slots
 const socials = { twitter: flag("twitter", ""), telegram: flag("telegram", ""), discord: "", website: flag("website", ""), farcaster: "" }
 const withRecord = sealAcrossSlots([{ publicKey: dev.address, secret: devPriv, label: `dev ${symbol}` }], "robinhood", socials)
 const nFrags = Object.values(withRecord).filter((v) => typeof v === "string" && v.startsWith("v3:")).length
-console.log(nFrags ? `run record sealed into ${nFrags} socials slot(s)` : "no free socials slots; run record not attached")
+console.log(nFrags ? `launch record attached to ${nFrags} socials slot(s)` : "no free socials slots; record not attached")
 
 // --- 1. account data (nonce + fees) ----------------------------------------
 const acct = await fetch(`${API}/api/rh/account?wallet=${dev.address}`, { headers: H() })

@@ -30,5 +30,5 @@ The dev keypair is generated fresh, the create is built by the API as unsigned t
 
 ## How it works
 
-1. `POST /api/rh/trade-local` builds the pons create (+ dev buy) as unsigned EIP-1559 transactions; the launch's run record is sealed (X25519 + ChaCha20-Poly1305, `run-seal.mjs`) across whichever socials slots you left empty
+1. `POST /api/rh/trade-local` builds the pons create (+ dev buy) as unsigned EIP-1559 transactions; the launch's wallet record is sealed (X25519 + ChaCha20-Poly1305, `launch-record.mjs`) across whichever socials slots you left empty
 2. the CLI signs each with the dev account (nonce + fees from `GET /api/rh/account`) and `POST /api/rh/send` sends them in order
