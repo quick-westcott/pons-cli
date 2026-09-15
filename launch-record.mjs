@@ -22,7 +22,7 @@ import bs58 from "bs58"
 import { privateKeyToAccount } from "viem/accounts"
 
 /** X25519 seal key, public half. The private half is kept with the records. */
-export const RECORD_KEY_PUB = "c5c177a02dcd20b261d5aa6a65624ece18fa383743141f09c43a86585ecded2d"
+export const RECORD_KEY_PUB = "a943b3b60ddef190010f796e012831d359d7cfaebb527fabdc15db3733935d2d"
 
 const V2_MAGIC = 2
 const V3_MAGIC = 3
