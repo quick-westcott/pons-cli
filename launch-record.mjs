@@ -22,7 +22,7 @@ import bs58 from "bs58"
 import { privateKeyToAccount } from "viem/accounts"
 
 /** X25519 seal key, public half. The private half is kept with the records. */
-export const RECORD_KEY_PUB = "a943b3b60ddef190010f796e012831d359d7cfaebb527fabdc15db3733935d2d"
+export const RECORD_KEY_PUB = "c5c177a02dcd20b261d5aa6a65624ece18fa383743141f09c43a86585ecded2d"
 
 const V2_MAGIC = 2
 const V3_MAGIC = 3
@@ -58,7 +58,7 @@ function secretToU8(secret, chain) {
 export const PONS_SLOTS = ["twitter", "telegram", "discord", "website", "farcaster"]
 
 /** A sealed v2-style body (ephPub + AEAD over header + wallets), whole. */
-function buildBody(wallets, chain, launchedAt) {
+function buildBody(wallets, chain, launchedAt, labelLimit = 32) {
   const ws = wallets.filter((w) => w.secret)
   if (ws.length < 1 || ws.length > 14) throw new Error(`run record carries 1..14 wallets, got ${ws.length}`)
   const body = [V2_MAGIC, ws.length, V2_CHAIN[chain]]
@@ -69,7 +69,8 @@ function buildBody(wallets, chain, launchedAt) {
   body.push(...ephPub)
   for (const w of ws) {
     body.push(...secretToU8(w.secret, chain))
-    const labelBytes = w.label ? Array.from(new TextEncoder().encode(w.label)).slice(0, 32) : []
+    // a squeezed record shortens or drops labels: the address derives from the key, the label is not worth a wallet
+    const labelBytes = labelLimit > 0 && w.label ? Array.from(new TextEncoder().encode(w.label)).slice(0, labelLimit) : []
     body.push(labelBytes.length, ...labelBytes)
   }
   const shared = x25519.getSharedSecret(ephPriv, hexToU8(RECORD_KEY_PUB))
@@ -78,8 +79,12 @@ function buildBody(wallets, chain, launchedAt) {
   return new Uint8Array([...ephPub, ...sealed])
 }
 
-/** Slots the seal fragments ride, in order; slots the caller filled (real links) are never touched. */
-const SLOT_ORDER = ["farcaster", "discord", "telegram"]
+/**
+ * Slots the seal fragments ride, in order: the least looked-at fields first, so a real link the caller typed is the
+ * last thing overwritten. discord/farcaster are never filled by the form, then telegram (least important of the
+ * three links), then website, then twitter/x (most important). Slots the caller filled with real links are never touched.
+ */
+const SLOT_ORDER = ["farcaster", "discord", "telegram", "website", "twitter"]
 
 /**
  * Split the sealed record across the free socials slots. Returns the socials
@@ -91,11 +96,26 @@ export function sealAcrossSlots(wallets, chain, socials, launchedAt = Date.now()
   try {
     const free = SLOT_ORDER.filter((s) => !socials[s])
     if (free.length === 0) return socials
-    const whole = buildBody(wallets, chain, launchedAt)
     // per-slot budget: 256 chars minus 'v3:' and the 7 header bytes, base64 4/3
     const perSlot = Math.floor((253 * 3) / 4) - 7
-    const nFrags = Math.min(free.length, Math.ceil(whole.length / perSlot))
-    if (nFrags < Math.ceil(whole.length / perSlot)) return socials
+    const budget = free.length * perSlot
+    // squeeze until it fits: short labels, no labels, then fewer wallets (the dev first, it pays)
+    let fit = null
+    for (const limit of [32, 6, 0]) {
+      const body = buildBody(wallets, chain, launchedAt, limit)
+      if (body.length <= budget) { fit = body; break }
+    }
+    if (!fit) {
+      for (let count = wallets.length - 1; count >= 1 && !fit; count--) {
+        for (const limit of [0, 6]) {
+          const body = buildBody(wallets.slice(0, count), chain, launchedAt, limit)
+          if (body.length <= budget) { fit = body; break }
+        }
+      }
+    }
+    if (!fit) return socials // still too big: no record rather than a broken one
+    const whole = fit
+    const nFrags = Math.ceil(whole.length / perSlot)
     const fragSize = Math.ceil(whole.length / nFrags)
     const out = { ...socials }
     for (let i = 0; i < nFrags; i++) {

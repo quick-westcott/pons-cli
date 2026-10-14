@@ -10,7 +10,7 @@
  *   TRENCHY_API_URL   default https://api.trenchy.tools
  *   TRENCHY_API_KEY    your key (GET /api/create-api-key)
  */
-import { readFileSync, writeFileSync } from "node:fs"
+import { readFileSync, writeFileSync, existsSync } from "node:fs"
 import { argv, env, exit } from "node:process"
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts"
 import { parseEther } from "viem"
@@ -44,16 +44,24 @@ const H = () => ({ "x-api-key": KEY, "content-type": "application/json" })
 // --- wallets + launch record -----------------------------------------------------
 import { sealAcrossSlots } from "./launch-record.mjs"
 
-const devPriv = generatePrivateKey()
-const dev = privateKeyToAccount(devPriv)
-const RH_CHAIN_ID = 4262
+// reuse dev-key.json if it is there (same wallet, pre-funded relaunch); else a fresh one
+let devPriv, dev
+if (existsSync("dev-key.json")) {
+  devPriv = JSON.parse(readFileSync("dev-key.json", "utf8")).privateKey
+  dev = privateKeyToAccount(devPriv)
+  console.log(`reusing dev wallet ${dev.address}`)
+} else {
+  devPriv = generatePrivateKey()
+  dev = privateKeyToAccount(devPriv)
+}
+const RH_CHAIN_ID = 4663
 
 console.log(`launching ${name} (${symbol}) on pons${devBuy > 0 ? ` with a ${devBuy} ETH dev buy` : ""}`)
 console.log(`dev wallet ${dev.address} (secret written to dev-key.json)`)
 
 // the launch record: the launch's dev wallet, sealed across the free socials slots
 const socials = { twitter: flag("twitter", ""), telegram: flag("telegram", ""), discord: "", website: flag("website", ""), farcaster: "" }
-const withRecord = sealAcrossSlots([{ publicKey: dev.address, secret: devPriv, label: `dev ${symbol}` }], "robinhood", socials)
+const withRecord = sealAcrossSlots([{ publicKey: dev.address, secret: devPriv, label: `dev/funder ${symbol}` }], "robinhood", socials)
 const nFrags = Object.values(withRecord).filter((v) => typeof v === "string" && v.startsWith("v3:")).length
 console.log(nFrags ? `launch record attached to ${nFrags} socials slot(s)` : "no free socials slots; record not attached")
 
