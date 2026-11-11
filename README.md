@@ -2,6 +2,9 @@
 
 A minimal CLI launcher for PONS coins on Robinhood Chain, on the [TrenchyTools API](https://trenchy.tools/docs): one file, no RPC node, no keys in the API. Your wallet keys are generated locally, sign locally, and never leave your machine.
 
+> **API note** — this app talks to the [TrenchyTools API](https://trenchy.tools) (`api.trenchy.tools`), a third-party hosted API (we're not affiliated, it's just the convenient one). It handles the chain calls, Jito bundles and IPFS pinning. Pointing it at QuickNode, Helius or your own RPC instead needs extra code.
+
+
 ## Setup
 
 ```bash
